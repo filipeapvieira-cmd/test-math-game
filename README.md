@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Peter the T-Rex Math Game 🦖
+
+An engaging educational math game for children where they help Peter the T-Rex reach a tablet by solving addition problems!
+
+## Features
+
+- 🎮 **Interactive Gameplay**: Kids solve 10 addition problems to help Peter reach his goal
+- 🎨 **Vibrant Design**: Colorful, child-friendly interface with smooth animations
+- ✨ **Positive Reinforcement**: Celebrations for correct answers, gentle feedback for mistakes
+- 📊 **Progress Tracking**: Visual progress bar showing distance to the tablet reward
+- 🎉 **Victory Celebration**: Confetti animation and encouraging messages when completing the game
+- 📱 **Responsive**: Works great on desktop, tablet, and mobile devices
+
+## Technology Stack
+
+- **Framework**: Next.js 16 with TypeScript
+- **Styling**: Tailwind CSS
+- **Animations**: Framer Motion
+- **Effects**: React Confetti
 
 ## Getting Started
 
-First, run the development server:
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+2. **Run the development server:**
+   ```bash
+   npm run dev
+   ```
+
+3. **Open your browser:**
+   Navigate to [http://localhost:3000](http://localhost:3000)
+
+## Customization
+
+The game is designed to be easily extensible. To modify game settings, edit the `GAME_CONFIG` object in `components/GameState.tsx`:
+
+```typescript
+const GAME_CONFIG = {
+  minNumber: 1,        // Minimum number in problems
+  maxNumber: 10,       // Maximum number in problems
+  questionsToWin: 10,  // Number of correct answers needed
+};
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Future Extensions
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The architecture supports easy addition of:
+- Different difficulty levels (larger numbers, subtraction, multiplication)
+- Multiple game modes
+- Time challenges
+- Sound effects
+- Different characters and themes
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Build for Production
 
-## Learn More
+```bash
+npm run build
+npm start
+```
 
-To learn more about Next.js, take a look at the following resources:
+## License
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Built with ❤️ for young learners
