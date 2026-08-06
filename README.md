@@ -1,66 +1,34 @@
-# Peter the T-Rex Math Game 🦖
+# Peter's Number Quest 🦖
 
-An engaging educational math game for children where they help Peter the T-Rex reach a tablet by solving addition problems!
+A touch-first maths game with two complete visual themes: help Peter cross Dino Valley or take a monster truck through a night-time stadium rally.
 
 ## Features
 
-- 🎮 **Interactive Gameplay**: Kids solve 10 addition problems to help Peter reach his goal
-- 🎨 **Vibrant Design**: Colorful, child-friendly interface with smooth animations
-- ✨ **Positive Reinforcement**: Celebrations for correct answers, gentle feedback for mistakes
-- 📊 **Progress Tracking**: Visual progress bar showing distance to the tablet reward
-- 🎉 **Victory Celebration**: Confetti animation and encouraging messages when completing the game
-- 📱 **Responsive**: Works great on desktop, tablet, and mobile devices
+- Animated journey with immediate, encouraging feedback
+- Dino Valley and the more mature Monster Rally theme
+- Addition, subtraction, and multiplication
+- Three difficulty levels and 5, 10, or 15-question sessions
+- Large tablet-friendly controls in portrait and landscape
+- Hints after an incorrect attempt without revealing the answer
+- Streaks, progress milestones, and a finite victory celebration
+- Optional sound with saved preferences
+- Reduced-motion and screen-reader support
+- Installable standalone web-app metadata
 
-## Technology Stack
-
-- **Framework**: Next.js 16 with TypeScript
-- **Styling**: Tailwind CSS
-- **Animations**: Framer Motion
-- **Effects**: React Confetti
-
-## Getting Started
-
-1. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-
-2. **Run the development server:**
-   ```bash
-   npm run dev
-   ```
-
-3. **Open your browser:**
-   Navigate to [http://localhost:3000](http://localhost:3000)
-
-## Customization
-
-The game is designed to be easily extensible. To modify game settings, edit the `GAME_CONFIG` object in `components/GameState.tsx`:
-
-```typescript
-const GAME_CONFIG = {
-  minNumber: 1,        // Minimum number in problems
-  maxNumber: 10,       // Maximum number in problems
-  questionsToWin: 10,  // Number of correct answers needed
-};
-```
-
-### Future Extensions
-
-The architecture supports easy addition of:
-- Different difficulty levels (larger numbers, subtraction, multiplication)
-- Multiple game modes
-- Time challenges
-- Sound effects
-- Different characters and themes
-
-## Build for Production
+## Development
 
 ```bash
-npm run build
-npm start
+pnpm install
+pnpm dev
 ```
 
-## License
+Open [http://localhost:3000](http://localhost:3000).
 
-Built with ❤️ for young learners
+## Quality checks
+
+```bash
+pnpm lint
+pnpm build
+```
+
+The maths problem generator and its configuration types live in `components/gameEngine.ts`. The main interaction state machine lives in `components/GameState.tsx`.

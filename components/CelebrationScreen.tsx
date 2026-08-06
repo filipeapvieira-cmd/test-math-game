@@ -1,67 +1,100 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import Confetti from 'react-confetti';
 import { useEffect, useState } from 'react';
-import TabletRewardSVG from './TabletRewardSVG';
+import GoalEggSVG from './GoalEggSVG';
+import MonsterTruckSVG from './MonsterTruckSVG';
+import PeterTRexSVG from './PeterTRexSVG';
+import RallyTrophySVG from './RallyTrophySVG';
+import type { GameTheme } from './gameEngine';
 
 interface CelebrationScreenProps {
+  theme: GameTheme;
+  totalQuestions: number;
+  totalAttempts: number;
+  bestStreak: number;
   onPlayAgain: () => void;
+  onOpenSettings: () => void;
 }
 
-export default function CelebrationScreen({ onPlayAgain }: CelebrationScreenProps) {
+export default function CelebrationScreen({
+  theme,
+  totalQuestions,
+  totalAttempts,
+  bestStreak,
+  onPlayAgain,
+  onOpenSettings,
+}: CelebrationScreenProps) {
+  const reduceMotion = useReducedMotion();
   const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
 
   useEffect(() => {
-    setWindowSize({ width: window.innerWidth, height: window.innerHeight });
-    const handleResize = () => setWindowSize({ width: window.innerWidth, height: window.innerHeight });
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    const updateWindowSize = () => {
+      setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+    };
+
+    updateWindowSize();
+    window.addEventListener('resize', updateWindowSize);
+    return () => window.removeEventListener('resize', updateWindowSize);
   }, []);
 
-  return (
-    <div className="fixed inset-0 flex items-center justify-center bg-[#5c94fc] z-50">
-      <Confetti width={windowSize.width} height={windowSize.height} recycle={true} numberOfPieces={300} />
-      
-      <motion.div
-        initial={{ y: -500 }}
-        animate={{ y: 0 }}
-        transition={{ type: 'spring', bounce: 0.5 }}
-        className="bg-[#fcd000] border-8 border-[#e60012] p-12 shadow-[10px_10px_0px_0px_rgba(0,0,0,0.5)] text-center max-w-3xl mx-4 relative"
-      >
-        {/* Corner Bolts */}
-        <div className="absolute top-2 left-2 w-4 h-4 bg-black opacity-20 rounded-full"></div>
-        <div className="absolute top-2 right-2 w-4 h-4 bg-black opacity-20 rounded-full"></div>
-        <div className="absolute bottom-2 left-2 w-4 h-4 bg-black opacity-20 rounded-full"></div>
-        <div className="absolute bottom-2 right-2 w-4 h-4 bg-black opacity-20 rounded-full"></div>
+  const accuracy = Math.round((totalQuestions / Math.max(totalQuestions, totalAttempts)) * 100);
+  const isRally = theme === 'rally';
 
-        <motion.div
-          animate={{ scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] }}
-          transition={{ duration: 2, repeat: Infinity }}
-          className="mb-8 flex justify-center"
-        >
-          <div className="scale-150">
-            <TabletRewardSVG />
-          </div>
-        </motion.div>
-        
-        <h1 className="text-5xl font-pixel text-[#e60012] mb-8 text-shadow-md leading-tight">
-          COURSE CLEAR!
-        </h1>
-        
-        <p className="text-xl font-pixel text-black mb-8 leading-relaxed">
-          PETER REACHED THE GOAL!
-        </p>
-        
-        <motion.button
-          onClick={onPlayAgain}
-          className="bg-[#00aa00] text-white font-pixel text-xl px-8 py-6 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)] hover:bg-[#00cc00] active:translate-y-1 active:shadow-none transition-all"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          PLAY AGAIN
-        </motion.button>
-      </motion.div>
-    </div>
+  return (
+    <main className="celebration-screen" data-theme={theme}>
+      {reduceMotion ? null : (
+        <Confetti
+          width={windowSize.width}
+          height={windowSize.height}
+          recycle={false}
+          numberOfPieces={180}
+          gravity={0.16}
+          tweenDuration={6500}
+          colors={isRally
+            ? ['#FFB000', '#F4F1E8', '#1F5B78', '#D94B35']
+            : ['#FFD166', '#61C454', '#79D7F2', '#FF7477']}
+        />
+      )}
+
+      <motion.section
+        className="celebration-card"
+        initial={reduceMotion ? undefined : { opacity: 0, y: 40, scale: 0.94 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ type: 'spring', bounce: 0.35 }}
+      >
+        <p className="eyebrow">{isRally ? 'Championship complete' : 'Adventure complete'}</p>
+        <h1>{isRally ? 'You conquered the Monster Rally!' : 'Peter found the mystery egg!'}</h1>
+
+        <div className="celebration-heroes" aria-hidden="true">
+          <motion.div
+            className={isRally ? 'celebration-truck' : 'celebration-peter'}
+            animate={reduceMotion ? undefined : { y: [0, -8, 0] }}
+            transition={{ duration: 1.4, repeat: 2, ease: 'easeInOut' }}
+          >
+            {isRally ? <MonsterTruckSVG /> : <PeterTRexSVG />}
+          </motion.div>
+          <motion.div
+            className={isRally ? 'celebration-trophy' : 'celebration-egg'}
+            animate={reduceMotion ? undefined : { rotate: [0, -5, 5, -3, 0] }}
+            transition={{ delay: 0.5, duration: 1.2 }}
+          >
+            {isRally ? <RallyTrophySVG /> : <GoalEggSVG />}
+          </motion.div>
+        </div>
+
+        <div className="result-stats">
+          <div><strong>{accuracy}%</strong><span>accuracy</span></div>
+          <div><strong>{bestStreak}</strong><span>best streak</span></div>
+          <div><strong>{totalQuestions}</strong><span>{isRally ? 'checkpoints' : 'stars found'}</span></div>
+        </div>
+
+        <div className="celebration-actions">
+          <button className="primary-button" type="button" onClick={onPlayAgain}>Play again</button>
+          <button className="secondary-button" type="button" onClick={onOpenSettings}>New adventure</button>
+        </div>
+      </motion.section>
+    </main>
   );
 }

@@ -1,190 +1,314 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import MathProblem from './MathProblem';
+import dynamic from 'next/dynamic';
+import { useCallback, useEffect, useReducer, useState } from 'react';
 import AnswerButtons from './AnswerButtons';
-import LevelProgress from './LevelProgress';
-import CelebrationScreen from './CelebrationScreen';
+import GameSettingsPanel from './GameSettingsPanel';
 import LevelBackground from './LevelBackground';
+import LevelProgress from './LevelProgress';
+import MathProblem from './MathProblem';
+import ProgressBar from './ProgressBar';
+import {
+  createProblem,
+  DEFAULT_SETTINGS,
+  DIFFICULTY_LABELS,
+  type GameSettings,
+  parseGameSettings,
+  OPERATION_LABELS,
+  type Problem,
+} from './gameEngine';
 
-const GAME_CONFIG = {
-  questionsToWin: 10,
+const CelebrationScreen = dynamic(() => import('./CelebrationScreen'), { ssr: false });
+const PREFERENCES_KEY = 'peter-number-quest-preferences-v1';
+
+type GameStatus = 'loading' | 'answering' | 'correct' | 'incorrect' | 'complete';
+
+interface State {
+  settings: GameSettings;
+  problem: Problem | null;
+  status: GameStatus;
+  score: number;
+  selectedAnswer: number | null;
+  attemptsOnProblem: number;
+  totalAttempts: number;
+  streak: number;
+  bestStreak: number;
+  recentProblemIds: string[];
+}
+
+type Action =
+  | { type: 'START'; settings: GameSettings; problem: Problem }
+  | { type: 'ANSWER'; answer: number; correct: boolean }
+  | { type: 'RETRY' }
+  | { type: 'NEXT'; problem: Problem }
+  | { type: 'COMPLETE' }
+  | { type: 'SET_SOUND'; enabled: boolean };
+
+const initialState: State = {
+  settings: DEFAULT_SETTINGS,
+  problem: null,
+  status: 'loading',
+  score: 0,
+  selectedAnswer: null,
+  attemptsOnProblem: 0,
+  totalAttempts: 0,
+  streak: 0,
+  bestStreak: 0,
+  recentProblemIds: [],
 };
 
-interface Problem {
-  num1: number;
-  num2: number;
-  answer: number;
-  choices: number[];
+function gameReducer(state: State, action: Action): State {
+  switch (action.type) {
+    case 'START':
+      return {
+        ...initialState,
+        settings: action.settings,
+        problem: action.problem,
+        status: 'answering',
+        recentProblemIds: [action.problem.id],
+      };
+    case 'ANSWER': {
+      const streak = action.correct ? state.streak + 1 : 0;
+      return {
+        ...state,
+        status: action.correct ? 'correct' : 'incorrect',
+        selectedAnswer: action.answer,
+        attemptsOnProblem: state.attemptsOnProblem + 1,
+        totalAttempts: state.totalAttempts + 1,
+        score: action.correct ? state.score + 1 : state.score,
+        streak,
+        bestStreak: Math.max(state.bestStreak, streak),
+      };
+    }
+    case 'RETRY':
+      return { ...state, status: 'answering', selectedAnswer: null };
+    case 'NEXT':
+      return {
+        ...state,
+        problem: action.problem,
+        status: 'answering',
+        selectedAnswer: null,
+        attemptsOnProblem: 0,
+        recentProblemIds: [...state.recentProblemIds.slice(-4), action.problem.id],
+      };
+    case 'COMPLETE':
+      return { ...state, status: 'complete', selectedAnswer: null };
+    case 'SET_SOUND':
+      return { ...state, settings: { ...state.settings, soundEnabled: action.enabled } };
+    default:
+      return state;
+  }
+}
+
+function playFeedbackSound(correct: boolean, enabled: boolean, theme: GameSettings['theme']) {
+  if (!enabled || typeof window === 'undefined') return;
+
+  const AudioContextClass = window.AudioContext ??
+    (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!AudioContextClass) return;
+
+  const context = new AudioContextClass();
+  const oscillator = context.createOscillator();
+  const gain = context.createGain();
+  const now = context.currentTime;
+
+  oscillator.type = theme === 'rally' ? 'triangle' : correct ? 'sine' : 'triangle';
+  const startFrequency = theme === 'rally' ? (correct ? 145 : 125) : (correct ? 520 : 220);
+  const endFrequency = theme === 'rally' ? (correct ? 280 : 92) : (correct ? 780 : 180);
+  oscillator.frequency.setValueAtTime(startFrequency, now);
+  oscillator.frequency.exponentialRampToValueAtTime(endFrequency, now + 0.18);
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(0.12, now + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.24);
+  oscillator.connect(gain);
+  gain.connect(context.destination);
+  oscillator.start(now);
+  oscillator.stop(now + 0.25);
+  oscillator.addEventListener('ended', () => void context.close(), { once: true });
 }
 
 export default function GameState() {
-  const [score, setScore] = useState(0);
-  const [currentProblem, setCurrentProblem] = useState<Problem | null>(null);
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [gameState, setGameState] = useState<'playing' | 'feedback' | 'won'>('playing');
-  const [isCorrect, setIsCorrect] = useState(false);
-  const [difficulty, setDifficulty] = useState<1 | 2>(1); // Level 1 or 2
+  const [state, dispatch] = useReducer(gameReducer, initialState);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
-  // Initialize first problem on mount
+  const startGame = useCallback((settings: GameSettings) => {
+    dispatch({ type: 'START', settings, problem: createProblem(settings) });
+  }, []);
+
   useEffect(() => {
-    setCurrentProblem(generateProblem(difficulty));
-  }, [difficulty]); // Regenerate if difficulty changes
+    let settings = DEFAULT_SETTINGS;
 
-  function generateProblem(level: 1 | 2): Problem {
-    let num1: number, num2: number, answer: number;
-
-    if (level === 1) {
-      // Level 1: Sums 0-10
-      answer = Math.floor(Math.random() * 11); // 0 to 10
-      num1 = Math.floor(Math.random() * (answer + 1)); // 0 to answer
-      num2 = answer - num1;
-    } else {
-      // Level 2: Sums 10-20
-      answer = Math.floor(Math.random() * 11) + 10; // 10 to 20
-      num1 = Math.floor(Math.random() * (answer + 1));
-      num2 = answer - num1;
+    try {
+      const saved = JSON.parse(window.localStorage.getItem(PREFERENCES_KEY) ?? 'null') as unknown;
+      settings = parseGameSettings(saved) ?? DEFAULT_SETTINGS;
+    } catch {
+      // A malformed preference should never prevent the game from starting.
     }
-    
-    // Generate choices
-    const wrong: number[] = [];
-    const possibleOffsets = [-3, -2, -1, 1, 2, 3, 4, 5];
-    while (wrong.length < 3) {
-      const offset = possibleOffsets[Math.floor(Math.random() * possibleOffsets.length)];
-      const val = answer + offset;
-      // Ensure positive and within reasonable range
-      if (val >= 0 && val !== answer && !wrong.includes(val) && val <= 25) {
-        wrong.push(val);
-      }
-    }
-    const choices = [answer, ...wrong].sort(() => Math.random() - 0.5);
 
-    return { num1, num2, answer, choices };
-  }
+    startGame(settings);
+  }, [startGame]);
+
+  useEffect(() => {
+    if (state.status === 'loading') return;
+    window.localStorage.setItem(PREFERENCES_KEY, JSON.stringify(state.settings));
+  }, [state.settings, state.status]);
+
+  useEffect(() => {
+    if (state.status === 'incorrect') {
+      const retryTimer = window.setTimeout(() => dispatch({ type: 'RETRY' }), 950);
+      return () => window.clearTimeout(retryTimer);
+    }
+
+    if (state.status === 'correct') {
+      const nextTimer = window.setTimeout(() => {
+        if (state.score >= state.settings.questionsToWin) {
+          dispatch({ type: 'COMPLETE' });
+          return;
+        }
+
+        dispatch({
+          type: 'NEXT',
+          problem: createProblem(state.settings, state.recentProblemIds),
+        });
+      }, 1050);
+
+      return () => window.clearTimeout(nextTimer);
+    }
+  }, [state.recentProblemIds, state.score, state.settings, state.status]);
 
   const handleAnswer = (answer: number) => {
-    if (gameState !== 'playing' || !currentProblem) return;
-
-    setSelectedAnswer(answer);
-    setGameState('feedback');
-    
-    const correct = answer === currentProblem.answer;
-    setIsCorrect(correct);
+    if (state.status !== 'answering' || !state.problem) return;
+    const correct = answer === state.problem.answer;
+    playFeedbackSound(correct, state.settings.soundEnabled, state.settings.theme);
+    dispatch({ type: 'ANSWER', answer, correct });
   };
 
-  const handleContinue = () => {
-    if (!currentProblem) return;
-
-    if (isCorrect) {
-      const newScore = score + 1;
-      setScore(newScore);
-      
-      if (newScore >= GAME_CONFIG.questionsToWin) {
-        setGameState('won');
-      } else {
-        setCurrentProblem(generateProblem(difficulty));
-        setGameState('playing');
-        setSelectedAnswer(null);
-        setIsCorrect(false);
-      }
-    } else {
-      // Retry same problem
-      setGameState('playing');
-      setSelectedAnswer(null);
-      setIsCorrect(false);
-    }
+  const handleApplySettings = (settings: GameSettings) => {
+    startGame(settings);
+    setSettingsOpen(false);
   };
 
-  const resetGame = () => {
-    setScore(0);
-    setCurrentProblem(generateProblem(difficulty));
-    setGameState('playing');
-    setSelectedAnswer(null);
-    setIsCorrect(false);
-  };
+  const handlePlayAgain = () => startGame(state.settings);
+  const closeSettings = useCallback(() => setSettingsOpen(false), []);
 
-  const changeDifficulty = (level: 1 | 2) => {
-    setDifficulty(level);
-    setScore(0); // Reset score on level change? Yes, fair.
-    setGameState('playing');
-    setSelectedAnswer(null);
-    setIsCorrect(false);
-  };
-
-  if (gameState === 'won') {
-    return <CelebrationScreen onPlayAgain={resetGame} />;
+  if (!state.problem) {
+    return (
+      <main className="game-shell game-loading" data-theme={state.settings.theme}>
+        <LevelBackground theme={state.settings.theme} />
+        <div className="loading-bubble" role="status">Preparing the challenge…</div>
+      </main>
+    );
   }
 
-  if (!currentProblem) return null;
+  if (state.status === 'complete') {
+    return (
+      <>
+        <CelebrationScreen
+          theme={state.settings.theme}
+          totalQuestions={state.settings.questionsToWin}
+          totalAttempts={state.totalAttempts}
+          bestStreak={state.bestStreak}
+          onPlayAgain={handlePlayAgain}
+          onOpenSettings={() => setSettingsOpen(true)}
+        />
+        {settingsOpen ? (
+          <GameSettingsPanel settings={state.settings} onApply={handleApplySettings} onClose={closeSettings} />
+        ) : null}
+      </>
+    );
+  }
+
+  const feedback = state.status === 'correct' || state.status === 'incorrect'
+    ? state.status
+    : 'answering';
+  const isRally = state.settings.theme === 'rally';
+  const feedbackMessage = state.status === 'correct'
+    ? state.streak >= 3
+      ? isRally ? `${state.streak} clean checkpoints in a row!` : `Amazing! ${state.streak} in a row!`
+      : isRally ? 'Clean jump! The truck charges ahead.' : 'Great thinking! Peter moves ahead!'
+    : state.status === 'incorrect'
+      ? isRally ? 'Check your line and try the clue.' : 'Almost! Here comes a clue.'
+      : '';
 
   return (
-    <div className="h-screen w-screen relative overflow-hidden font-sans bg-[#5c94fc] flex items-center justify-center">
-      <LevelBackground />
+    <main className="game-shell" data-theme={state.settings.theme}>
+      <LevelBackground theme={state.settings.theme} />
 
-      {/* Game Container */}
-      <div className="relative z-10 w-full max-w-4xl h-full max-h-[800px] flex flex-col p-4 transition-all duration-300">
-        
-        {/* Top HUD: Progress & Settings */}
-        <div className="flex-none flex flex-col gap-4 mb-8">
-          {/* Settings Bar */}
-          <div className="flex justify-center gap-4">
-            {/* Operation Selector */}
-            <select 
-              className="font-pixel text-sm border-2 border-black bg-white text-black px-2 py-2 shadow-[2px_2px_0_0_rgba(0,0,0,1)] focus:outline-none cursor-pointer hover:bg-gray-50"
-              defaultValue="addition"
-            >
-              <option value="addition">ADDITION (+)</option>
-              <option value="subtraction" disabled>SUBTRACTION (-)</option>
-              <option value="multiplication" disabled>MULTIPLICATION (×)</option>
-            </select>
-
-            {/* Difficulty Selector */}
-            <select 
-              value={difficulty}
-              onChange={(e) => changeDifficulty(Number(e.target.value) as 1 | 2)}
-              className="font-pixel text-sm border-2 border-black bg-white text-black px-2 py-2 shadow-[2px_2px_0_0_rgba(0,0,0,1)] focus:outline-none cursor-pointer hover:bg-gray-50"
-            >
-              <option value={1}>LEVEL 1 (0-10)</option>
-              <option value={2}>LEVEL 2 (10-20)</option>
-            </select>
-          </div>
-          
-          <LevelProgress current={score} total={GAME_CONFIG.questionsToWin} />
-        </div>
-
-        {/* Main Stage */}
-        <div className="flex-1 flex flex-col items-center justify-center gap-8 min-h-0">
-          
-          {/* Math Problem (No Dino) */}
-          <div className="flex-none scale-125">
-            <MathProblem num1={currentProblem.num1} num2={currentProblem.num2} />
-          </div>
-
-          {/* Answer Area */}
-          <div className="flex-none w-full flex flex-col items-center gap-6">
-            <AnswerButtons
-              answers={currentProblem.choices}
-              correctAnswer={currentProblem.answer}
-              selectedAnswer={selectedAnswer}
-              onAnswer={handleAnswer}
-              disabled={gameState !== 'playing'}
-              showFeedback={gameState === 'feedback'}
-            />
-
-            {/* Fixed Height Container for Continue Button to prevent layout shift */}
-            <div className="h-20 w-full flex items-center justify-center">
-              {gameState === 'feedback' && (
-                <button
-                  onClick={handleContinue}
-                  className="animate-bounce bg-white text-black font-pixel border-4 border-black px-8 py-4 text-xl shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:scale-105 active:scale-95 transition-transform"
-                >
-                  {isCorrect ? "NEXT LEVEL ➤" : "TRY AGAIN ↺"}
-                </button>
-              )}
+      <div className="game-frame">
+        <header className="game-header">
+          <div className="game-brand">
+            <span className="brand-badge" aria-hidden="true">{isRally ? '7' : 'P'}</span>
+            <div>
+              <p>{isRally ? 'Monster' : "Peter's"}</p>
+              <h1>{isRally ? 'Number Rally' : 'Number Quest'}</h1>
             </div>
           </div>
-        </div>
+
+          <LevelProgress
+            current={state.score}
+            total={state.settings.questionsToWin}
+            streak={state.streak}
+            theme={state.settings.theme}
+          />
+
+          <div className="game-controls">
+            <button
+              aria-label={state.settings.soundEnabled ? 'Turn sound off' : 'Turn sound on'}
+              aria-pressed={state.settings.soundEnabled}
+              className="icon-button"
+              type="button"
+              onClick={() => dispatch({ type: 'SET_SOUND', enabled: !state.settings.soundEnabled })}
+            >
+              <span aria-hidden="true">{state.settings.soundEnabled ? '♪' : '×'}</span>
+            </button>
+            <button
+              aria-label="Open game settings"
+              className="icon-button"
+              type="button"
+              onClick={() => setSettingsOpen(true)}
+            >
+              <span aria-hidden="true">⚙</span>
+            </button>
+          </div>
+        </header>
+
+        <ProgressBar
+          current={state.score}
+          total={state.settings.questionsToWin}
+          feedback={feedback}
+          theme={state.settings.theme}
+        />
+
+        <section className="game-content">
+          <div className="question-column">
+            <div className="mode-label">
+              {OPERATION_LABELS[state.settings.operation]} · {DIFFICULTY_LABELS[state.settings.difficulty]}
+            </div>
+            <MathProblem
+              left={state.problem.left}
+              right={state.problem.right}
+              symbol={state.problem.symbol}
+              hint={state.problem.hint}
+              showHint={state.attemptsOnProblem > 0 && state.status === 'answering'}
+            />
+            <div className="feedback-message" data-kind={feedback} aria-live="polite" role="status">
+              {feedbackMessage}
+            </div>
+          </div>
+
+          <AnswerButtons
+            answers={state.problem.choices}
+            correctAnswer={state.problem.answer}
+            selectedAnswer={state.selectedAnswer}
+            onAnswer={handleAnswer}
+            feedback={feedback}
+          />
+        </section>
       </div>
-    </div>
+
+      {settingsOpen ? (
+        <GameSettingsPanel settings={state.settings} onApply={handleApplySettings} onClose={closeSettings} />
+      ) : null}
+    </main>
   );
 }

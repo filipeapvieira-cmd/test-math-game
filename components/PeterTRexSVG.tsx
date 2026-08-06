@@ -1,55 +1,61 @@
 export default function PeterTRexSVG() {
   return (
     <svg
-      width="120"
-      height="120"
-      viewBox="0 0 120 120"
+      aria-hidden="true"
+      className="h-auto w-full overflow-visible"
+      viewBox="0 0 170 120"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* Yoshi-style Green Body */}
+      <ellipse cx="87" cy="111" rx="55" ry="7" fill="#15324A" opacity="0.18" />
+
+      {/* Tail and body */}
       <path
-        d="M60 20 C 45 20, 35 35, 35 50 C 35 65, 45 75, 50 85 L 50 100 L 70 100 L 70 85 C 80 75, 85 65, 85 50 C 85 35, 75 20, 60 20"
-        fill="#43b047"
-        stroke="black"
-        strokeWidth="3"
+        d="M58 71C41 76 23 73 7 61c12 3 25 0 36-9 5-18 20-30 42-30 30 0 48 21 48 45 0 24-18 39-46 39-24 0-40-11-43-29"
+        fill="#61C454"
+        stroke="#17324D"
+        strokeWidth="5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
-      
-      {/* White Belly/Cheeks */}
+      <path d="M58 73c4 20 15 29 34 31-26 5-43-5-48-27" fill="#3EA644" />
+
+      {/* Head and snout */}
       <path
-        d="M45 50 C 45 60, 50 70, 60 70 C 70 70, 75 60, 75 50 C 75 40, 70 35, 60 35 C 50 35, 45 40, 45 50"
-        fill="white"
-      />
-      
-      {/* Big Nose */}
-      <circle cx="85" cy="40" r="15" fill="#43b047" stroke="black" strokeWidth="3" />
-      
-      {/* Eyes */}
-      <ellipse cx="60" cy="25" rx="8" ry="12" fill="white" stroke="black" strokeWidth="2" />
-      <ellipse cx="75" cy="25" rx="8" ry="12" fill="white" stroke="black" strokeWidth="2" />
-      <circle cx="62" cy="25" r="3" fill="black" />
-      <circle cx="73" cy="25" r="3" fill="black" />
-      
-      {/* Orange Shoes */}
-      <path
-        d="M40 100 L 55 100 L 55 110 C 55 115, 50 118, 45 118 L 40 118 C 35 118, 30 115, 30 110 L 30 105 C 30 102, 35 100, 40 100"
-        fill="#ff6b00"
-        stroke="black"
-        strokeWidth="2"
+        d="M80 25C84 8 102 2 120 7c18 5 25 19 21 35 15 4 23 13 21 24-3 16-19 20-44 17-25-2-41-15-39-33"
+        fill="#73D45E"
+        stroke="#17324D"
+        strokeWidth="5"
+        strokeLinejoin="round"
       />
       <path
-        d="M65 100 L 80 100 L 80 110 C 80 115, 75 118, 70 118 L 65 118 C 60 118, 55 115, 55 110 L 55 105 C 55 102, 60 100, 65 100"
-        fill="#ff6b00"
-        stroke="black"
-        strokeWidth="2"
+        d="M111 50c15 6 32 6 47 1 6 6 6 16 0 23-12 9-35 9-49 2"
+        fill="#B8EA82"
+        stroke="#17324D"
+        strokeWidth="5"
+        strokeLinecap="round"
       />
-      
-      {/* Red Spikes/Saddle */}
-      <path d="M35 50 L 25 45 L 35 40" fill="#e60012" stroke="black" strokeWidth="2" />
-      <path d="M30 65 L 20 60 L 30 55" fill="#e60012" stroke="black" strokeWidth="2" />
-      
-      {/* Arm */}
-      <ellipse cx="50" cy="65" rx="10" ry="5" fill="#43b047" stroke="black" strokeWidth="2" />
+
+      {/* Eye and face */}
+      <ellipse cx="118" cy="30" rx="10" ry="12" fill="white" stroke="#17324D" strokeWidth="4" />
+      <circle cx="121" cy="33" r="4" fill="#17324D" />
+      <circle cx="132" cy="47" r="3" fill="#17324D" />
+      <path d="M132 69c6 3 13 3 19-1" stroke="#17324D" strokeWidth="3" strokeLinecap="round" />
+      <path d="m116 79 7 8 7-7m4 2 6 6 6-8" fill="white" stroke="#17324D" strokeWidth="2" strokeLinejoin="round" />
+
+      {/* Back spikes */}
+      <path d="m78 25-8-15 17 8m4-10 7 14 8-16 5 17" fill="#FF8A65" stroke="#17324D" strokeWidth="4" strokeLinejoin="round" />
+
+      {/* Tiny arms */}
+      <path d="M96 66c-12 1-17 7-18 16m18-16 8 9m-26 7-7-2" stroke="#17324D" strokeWidth="6" strokeLinecap="round" />
+      <path d="M96 64c-12 1-17 7-18 16m18-16 8 9" stroke="#73D45E" strokeWidth="3" strokeLinecap="round" />
+
+      {/* Legs and shoes */}
+      <path d="M66 91v17m36-15v15" stroke="#17324D" strokeWidth="12" strokeLinecap="round" />
+      <path d="M57 108c0-6 5-10 11-10h10c6 0 10 5 10 11H57Zm35 1c0-7 5-11 11-11h10c7 0 12 5 12 11H92Z" fill="#FFB84D" stroke="#17324D" strokeWidth="4" strokeLinejoin="round" />
+
+      {/* Cheek */}
+      <circle cx="105" cy="48" r="6" fill="#FF8A80" opacity="0.75" />
     </svg>
   );
 }

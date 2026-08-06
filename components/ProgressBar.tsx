@@ -1,57 +1,81 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import TabletRewardSVG from './TabletRewardSVG';
+import GoalEggSVG from './GoalEggSVG';
+import MonsterTruckCharacter from './MonsterTruckCharacter';
+import PeterCharacter from './PeterCharacter';
+import RallyTrophySVG from './RallyTrophySVG';
+import type { GameTheme } from './gameEngine';
 
 interface ProgressBarProps {
   current: number;
   total: number;
+  feedback: 'answering' | 'correct' | 'incorrect';
+  theme: GameTheme;
 }
 
-export default function ProgressBar({ current, total }: ProgressBarProps) {
-  const percentage = (current / total) * 100;
+export default function ProgressBar({ current, total, feedback, theme }: ProgressBarProps) {
+  const progress = total === 0 ? 0 : current / total;
+  const isRally = theme === 'rally';
 
   return (
-    <div className="w-full max-w-3xl">
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-2xl font-bold text-purple-600">
-          {current} / {total} correct! 🎉
-        </span>
-        <div className="scale-75">
-          <TabletRewardSVG />
+    <section
+      aria-label={isRally
+        ? `Rally progress: ${current} of ${total} checkpoints complete`
+        : `Journey progress: ${current} of ${total} questions complete`}
+      className={`journey ${isRally ? 'journey-rally' : ''}`}
+    >
+      {isRally ? (
+        <>
+          <div className="rally-stage-light rally-stage-light-one" />
+          <div className="rally-stage-light rally-stage-light-two" />
+          <div className="rally-stage-stands" />
+          <div className="rally-stage-ramp rally-stage-ramp-one" />
+          <div className="rally-stage-ramp rally-stage-ramp-two" />
+        </>
+      ) : (
+        <>
+          <div className="journey-sun" />
+          <div className="journey-ridge journey-ridge-back" />
+          <div className="journey-ridge journey-ridge-front" />
+        </>
+      )}
+      <div className="journey-path" />
+
+      {Array.from({ length: total }).map((_, index) => {
+        const stepProgress = total === 1 ? 1 : index / (total - 1);
+        const completed = index < current;
+
+        return (
+          <span
+            aria-hidden="true"
+            className="journey-step"
+            data-completed={completed}
+            key={index}
+            style={{ left: `${10 + stepProgress * 72}%` }}
+          >
+            <i>{completed ? (isRally ? '✓' : '★') : ''}</i>
+          </span>
+        );
+      })}
+
+      {isRally ? (
+        <MonsterTruckCharacter progress={progress} feedback={feedback} />
+      ) : (
+        <PeterCharacter progress={progress} feedback={feedback} />
+      )}
+
+      {isRally ? (
+        <div className="goal-trophy">
+          <span className="checkered-flag" aria-hidden="true">▦</span>
+          <RallyTrophySVG />
         </div>
-      </div>
-      
-      <div className="w-full h-8 bg-gray-200 rounded-full overflow-hidden shadow-inner">
-        <motion.div
-          className="h-full bg-gradient-to-r from-green-400 via-blue-500 to-purple-600 rounded-full"
-          initial={{ width: 0 }}
-          animate={{ width: `${percentage}%` }}
-          transition={{ type: 'spring', stiffness: 100, damping: 20 }}
-        >
-          <motion.div
-            className="h-full w-full"
-            animate={{
-              background: [
-                'linear-gradient(90deg, #4ade80, #3b82f6, #a855f7)',
-                'linear-gradient(90deg, #3b82f6, #a855f7, #4ade80)',
-                'linear-gradient(90deg, #a855f7, #4ade80, #3b82f6)',
-              ],
-            }}
-            transition={{
-              duration: 3,
-              repeat: Infinity,
-              ease: 'linear',
-            }}
-          />
-        </motion.div>
-      </div>
-      
-      <p className="text-center mt-3 text-xl font-semibold text-gray-700">
-        {current === 0 && "Help Peter reach the tablet! 🦖"}
-        {current > 0 && current < total / 2 && "Great start! Keep going! 🌟"}
-        {current >= total / 2 && current < total && "You're almost there! 💪"}
-      </p>
-    </div>
+      ) : (
+        <div className="goal-egg">
+          <span className="goal-spark goal-spark-one">✦</span>
+          <span className="goal-spark goal-spark-two">✦</span>
+          <GoalEggSVG />
+        </div>
+      )}
+    </section>
   );
 }
