@@ -3,6 +3,7 @@
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from 'framer-motion';
 import { type CSSProperties, useEffect, useState } from 'react';
 import type { GameTheme, Problem } from './gameEngine';
+import { useModalDialog } from './useModalDialog';
 
 interface EducationalPopupProps {
   problem: Problem;
@@ -14,7 +15,6 @@ type LessonPhase = 'groups' | 'moving' | 'result';
 
 const MOVEMENT_START_MS = 1500;
 const RESULT_REVEAL_MS = 7000;
-const AUTO_CLOSE_MS = 10000;
 const LESSON_EASE = [0.45, 0, 0.55, 1] as const;
 
 const LESSON_THEME: Record<GameTheme, {
@@ -62,24 +62,17 @@ export default function EducationalPopup({ problem, theme, onClose }: Educationa
   const [phase, setPhase] = useState<LessonPhase>('groups');
   const lessonTheme = LESSON_THEME[theme];
   const visiblePhase: LessonPhase = reduceMotion ? 'result' : phase;
+  const dialogRef = useModalDialog<HTMLElement>({ onClose });
 
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-
     const movingTimer = reduceMotion ? undefined : window.setTimeout(() => setPhase('moving'), MOVEMENT_START_MS);
     const resultTimer = reduceMotion ? undefined : window.setTimeout(() => setPhase('result'), RESULT_REVEAL_MS);
-    const closeTimer = window.setTimeout(onClose, AUTO_CLOSE_MS);
 
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
       if (movingTimer) window.clearTimeout(movingTimer);
       if (resultTimer) window.clearTimeout(resultTimer);
-      window.clearTimeout(closeTimer);
     };
-  }, [onClose, reduceMotion]);
+  }, [reduceMotion]);
 
   const description = getLessonDescription(problem, visiblePhase, lessonTheme.object);
   const lessonSteps = getLessonSteps(problem);
@@ -92,10 +85,10 @@ export default function EducationalPopup({ problem, theme, onClose }: Educationa
         aria-labelledby="education-title"
         aria-modal="true"
         className="education-dialog"
+        ref={dialogRef}
         role="dialog"
+        tabIndex={-1}
       >
-        <div className="education-timebar" aria-hidden="true"><span /></div>
-
         <header className="education-header">
           <div>
             <p className="eyebrow">{lessonTheme.eyebrow}</p>
@@ -144,7 +137,6 @@ export default function EducationalPopup({ problem, theme, onClose }: Educationa
         <button className="education-understood" type="button" onClick={onClose}>
           {lessonTheme.buttonLabel}
         </button>
-        <p className="education-auto-close">This clue closes automatically after 10 seconds.</p>
       </section>
     </div>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   DIFFICULTY_LABELS,
   GameSettings,
@@ -15,6 +15,7 @@ import MonsterTruckSVG from './MonsterTruckSVG';
 import PeterTRexSVG from './PeterTRexSVG';
 import JudoKidSVG from './JudoKidSVG';
 import FootballPlayerSVG from './FootballPlayerSVG';
+import { useModalDialog } from './useModalDialog';
 
 interface GameSettingsPanelProps {
   settings: GameSettings;
@@ -36,15 +37,7 @@ const themeArtwork: Record<GameTheme, React.ReactNode> = {
 
 export default function GameSettingsPanel({ settings, onApply, onClose }: GameSettingsPanelProps) {
   const [draft, setDraft] = useState(settings);
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+  const dialogRef = useModalDialog<HTMLElement>({ onClose });
 
   return (
     <div className="settings-backdrop" role="presentation" onPointerDown={onClose}>
@@ -52,7 +45,9 @@ export default function GameSettingsPanel({ settings, onApply, onClose }: GameSe
         aria-labelledby="settings-title"
         aria-modal="true"
         className="settings-panel"
+        ref={dialogRef}
         role="dialog"
+        tabIndex={-1}
         onPointerDown={(event) => event.stopPropagation()}
       >
         <div className="settings-heading">

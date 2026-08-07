@@ -27,6 +27,7 @@ Open [http://localhost:3000](http://localhost:3000).
 ## Quality checks
 
 ```bash
+pnpm test
 pnpm lint
 pnpm build
 ```

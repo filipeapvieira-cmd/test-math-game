@@ -24,32 +24,18 @@ import {
   type GameTheme,
   type Problem,
 } from './gameEngine';
+import {
+  allGatesUnlocked,
+  GATES,
+  getGateIndex,
+  isGoalCell,
+  MAZE,
+  START,
+  TOTAL_SPARKS,
+} from './mazeRules';
+import { useModalDialog } from './useModalDialog';
 
 const PREFERENCES_KEY = 'peter-number-quest-preferences-v1';
-const MAZE = [
-  '###############',
-  '#S....#.......#',
-  '#####.#.#####.#',
-  '#.....#.....#.#',
-  '#.#########.#.#',
-  '#.....#.....#.#',
-  '#.###.#.#####.#',
-  '#...#.#.......#',
-  '###.#.#######.#',
-  '#...#.........#',
-  '#.###########.#',
-  '#............G#',
-  '###############',
-] as const;
-
-const START = { row: 1, column: 1 };
-const GATES = [
-  { row: 1, column: 4 },
-  { row: 4, column: 1 },
-  { row: 8, column: 5 },
-  { row: 10, column: 13 },
-] as const;
-const TOTAL_SPARKS = MAZE.reduce((total, row) => total + [...row].filter((cell) => cell === '.').length, 0);
 const THEMES: GameTheme[] = ['dino', 'rally', 'judo', 'football'];
 
 const HEROES = {
@@ -122,6 +108,9 @@ export default function MazeGame({ onExit }: MazeGameProps) {
   const [moves, setMoves] = useState(0);
   const [announcement, setAnnouncement] = useState('Use the arrow keys or direction pad to move.');
   const recentProblemIds = useRef<string[]>([]);
+  const gateProblems = useRef<Map<number, Problem>>(new Map());
+  const gateProgress = unlockedGates.size;
+  const mazeReady = allGatesUnlocked(unlockedGates);
 
   useEffect(() => {
     let restoreTimer: number | undefined;
@@ -153,6 +142,7 @@ export default function MazeGame({ onExit }: MazeGameProps) {
     setMoves(0);
     setAnnouncement('Fresh maze! Find the glowing treasure.');
     recentProblemIds.current = [];
+    gateProblems.current.clear();
   }, []);
 
   const finishMove = useCallback((row: number, column: number) => {
@@ -170,11 +160,11 @@ export default function MazeGame({ onExit }: MazeGameProps) {
       });
     }
 
-    if (cell === 'G') {
+    if (cell === 'G' && mazeReady) {
       setComplete(true);
       setAnnouncement('Maze complete! You found the treasure!');
     }
-  }, []);
+  }, [mazeReady]);
 
   const movePlayer = useCallback((nextDirection: Direction) => {
     setDirection(nextDirection);
@@ -190,10 +180,20 @@ export default function MazeGame({ onExit }: MazeGameProps) {
       return;
     }
 
-    const gateIndex = GATES.findIndex((gate) => gate.row === nextRow && gate.column === nextColumn);
+    if (isGoalCell(nextRow, nextColumn) && !mazeReady) {
+      const gatesRemaining = GATES.length - gateProgress;
+      setAnnouncement(`The treasure is still sealed. Unlock ${gatesRemaining} more ${gatesRemaining === 1 ? 'gate' : 'gates'} first.`);
+      return;
+    }
+
+    const gateIndex = getGateIndex(nextRow, nextColumn);
     if (gateIndex >= 0 && !unlockedGates.has(gateIndex)) {
-      const problem = createProblem(settings, recentProblemIds.current);
-      recentProblemIds.current = [...recentProblemIds.current.slice(-4), problem.id];
+      let problem = gateProblems.current.get(gateIndex);
+      if (!problem) {
+        problem = createProblem(settings, recentProblemIds.current);
+        gateProblems.current.set(gateIndex, problem);
+        recentProblemIds.current = [...recentProblemIds.current.slice(-4), problem.id];
+      }
       setChallenge({
         row: nextRow,
         column: nextColumn,
@@ -208,9 +208,11 @@ export default function MazeGame({ onExit }: MazeGameProps) {
     }
 
     finishMove(nextRow, nextColumn);
-  }, [challenge, complete, explanation, finishMove, player, settings, settingsOpen, unlockedGates]);
+  }, [challenge, complete, explanation, finishMove, gateProgress, mazeReady, player, settings, settingsOpen, unlockedGates]);
 
   useEffect(() => {
+    if (challenge || explanation || complete || settingsOpen) return;
+
     const handleKeyDown = (event: KeyboardEvent) => {
       const keyDirections: Record<string, Direction | undefined> = {
         ArrowUp: 'up', w: 'up', W: 'up',
@@ -226,13 +228,14 @@ export default function MazeGame({ onExit }: MazeGameProps) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [movePlayer]);
+  }, [challenge, complete, explanation, movePlayer, settingsOpen]);
 
   useEffect(() => {
     if (challenge?.status !== 'correct') return;
 
     const timer = window.setTimeout(() => {
       setUnlockedGates((current) => new Set(current).add(challenge.index));
+      gateProblems.current.delete(challenge.index);
       finishMove(challenge.row, challenge.column);
       setChallenge(null);
       setAnnouncement('Gate unlocked! Keep exploring.');
@@ -262,6 +265,8 @@ export default function MazeGame({ onExit }: MazeGameProps) {
     setChallenge((current) => current ? { ...current, status: 'answering', selectedAnswer: null } : null);
   }, []);
 
+  const closeChallenge = useCallback(() => setChallenge(null), []);
+
   const applySettings = (nextSettings: GameSettings) => {
     setSettings(nextSettings);
     setSettingsOpen(false);
@@ -270,11 +275,15 @@ export default function MazeGame({ onExit }: MazeGameProps) {
 
   const chooseTheme = (theme: GameTheme) => {
     setSettings((current) => ({ ...current, theme }));
-    resetMaze();
   };
 
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
-  const gateProgress = unlockedGates.size;
+  const questionDialogRef = useModalDialog<HTMLElement>({
+    active: Boolean(challenge) && !explanation,
+    onClose: closeChallenge,
+    restoreFocus: !explanation,
+  });
+  const completeDialogRef = useModalDialog<HTMLElement>({ active: complete });
 
   return (
     <main className="maze-shell" data-theme={settings.theme}>
@@ -331,7 +340,7 @@ export default function MazeGame({ onExit }: MazeGameProps) {
               style={{ '--maze-columns': MAZE[0].length, '--maze-rows': MAZE.length } as CSSProperties}
             >
               {MAZE.flatMap((row, rowIndex) => [...row].map((cell, columnIndex) => {
-                const gateIndex = GATES.findIndex((gate) => gate.row === rowIndex && gate.column === columnIndex);
+                const gateIndex = getGateIndex(rowIndex, columnIndex);
                 const sparkCollected = collectedSparks.has(positionKey(rowIndex, columnIndex));
                 const isPlayer = player.row === rowIndex && player.column === columnIndex;
 
@@ -373,7 +382,7 @@ export default function MazeGame({ onExit }: MazeGameProps) {
               <h2>Reach the treasure!</h2>
               <ol>
                 <li data-done={true}><span>1</span>Move through the paths</li>
-                <li data-done={gateProgress === GATES.length}><span>{gateProgress === GATES.length ? '✓' : '2'}</span>Unlock all 4 number gates</li>
+                <li data-done={mazeReady}><span>{mazeReady ? '✓' : '2'}</span>Unlock all {GATES.length} number gates</li>
                 <li data-done={complete}><span>{complete ? '✓' : '3'}</span>Find the glowing goal</li>
               </ol>
             </div>
@@ -391,9 +400,17 @@ export default function MazeGame({ onExit }: MazeGameProps) {
       </div>
 
       {challenge ? (
-        <div className="maze-question-backdrop">
-          <section className="maze-question-dialog" role="dialog" aria-modal="true" aria-labelledby="maze-question-title">
-            <button className="maze-question-close" aria-label="Close number gate" type="button" onClick={() => setChallenge(null)}>×</button>
+        <div className="maze-question-backdrop" inert={Boolean(explanation)}>
+          <section
+            aria-hidden={explanation ? true : undefined}
+            aria-labelledby="maze-question-title"
+            aria-modal="true"
+            className="maze-question-dialog"
+            ref={questionDialogRef}
+            role="dialog"
+            tabIndex={-1}
+          >
+            <button className="maze-question-close" aria-label="Close number gate" type="button" onClick={closeChallenge}>×</button>
             <p className="eyebrow">Number gate {challenge.index + 1} of {GATES.length}</p>
             <h2 id="maze-question-title">Solve it to unlock the path!</h2>
             <div className="maze-question-content">
@@ -433,6 +450,8 @@ export default function MazeGame({ onExit }: MazeGameProps) {
             className="maze-complete-card"
             role="dialog"
             aria-modal="true"
+            ref={completeDialogRef}
+            tabIndex={-1}
             initial={reduceMotion ? undefined : { opacity: 0, scale: 0.86, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
           >
@@ -443,7 +462,7 @@ export default function MazeGame({ onExit }: MazeGameProps) {
               <span>{HEROES[settings.theme]}</span><b>{GOALS[settings.theme]}</b>
             </div>
             <div className="maze-complete-stats">
-              <span><b>{GATES.length}</b> gates unlocked</span>
+              <span><b>{gateProgress}</b> gates unlocked</span>
               <span><b>{collectedSparks.size}</b> sparks found</span>
               <span><b>{moves}</b> clever moves</span>
             </div>

@@ -1205,29 +1205,6 @@ button:focus-visible {
   box-shadow: 0 12px 0 rgba(0, 0, 0, 0.58);
 }
 
-.education-timebar {
-  position: absolute;
-  top: 0;
-  right: 0;
-  left: 0;
-  height: 7px;
-  overflow: hidden;
-  background: rgba(23, 50, 77, 0.12);
-}
-
-.education-timebar span {
-  display: block;
-  width: 100%;
-  height: 100%;
-  transform-origin: left;
-  animation: education-countdown 10s linear forwards;
-  background: var(--lesson-secondary);
-}
-
-@keyframes education-countdown {
-  to { transform: scaleX(0); }
-}
-
 .education-header {
   display: flex;
   align-items: flex-start;
@@ -1625,7 +1602,6 @@ button:focus-visible {
 }
 
 .education-backdrop[data-theme="rally"] .education-understood { border-radius: 7px; background: #1f5b78; box-shadow: 0 4px 0 #0b2c3c; }
-.education-auto-close { margin: 8px 0 0; color: #7b8c95; font-size: 0.68rem; font-weight: 750; text-align: center; }
 
 .celebration-screen {
   position: relative;
@@ -1938,7 +1914,6 @@ button:focus-visible {
   .quantity-group[data-featured="true"] { min-height: 220px; }
   .subtraction-start { min-height: 200px; }
   .education-understood { margin-top: 9px; }
-  .education-auto-close { margin-top: 6px; }
 }
 
 @media (orientation: landscape) and (max-height: 700px) {
@@ -1971,7 +1946,6 @@ button:focus-visible {
   .subtraction-start { min-height: 145px; }
   .multiplication-group { min-height: 59px; padding-top: 5px; }
   .education-understood { min-height: 43px; margin-top: 7px; }
-  .education-auto-close { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
