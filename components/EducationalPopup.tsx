@@ -92,18 +92,7 @@ export default function EducationalPopup({ problem, theme, onClose }: Educationa
           <b>{problem.symbol}</b>
           <span>{problem.right}</span>
           <b>=</b>
-          <motion.strong
-            key={visiblePhase === 'result' ? problem.answer : 'question'}
-            initial={reduceMotion ? undefined : { opacity: 0, scale: 0.65 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{
-              delay: !reduceMotion && visiblePhase === 'result' ? 0.6 : 0,
-              duration: reduceMotion ? 0 : 0.35,
-              ease: LESSON_EASE,
-            }}
-          >
-            {visiblePhase === 'result' ? problem.answer : '?'}
-          </motion.strong>
+          <strong>?</strong>
         </div>
 
         <p className="education-description" id="education-description" aria-live="polite">
@@ -137,17 +126,17 @@ function getLessonDescription(problem: Problem, phase: LessonPhase, objectName: 
       return `${problem.left} ${plural(problem.left)} in one group and ${problem.right} ${plural(problem.right)} in another.`;
     }
     if (phase === 'moving') return `Move the ${problem.right} ${plural(problem.right)} into the first group.`;
-    return `Now count the whole group: ${problem.answer}.`;
+    return 'Now count every object in the combined group.';
   }
 
   if (problem.operation === 'subtraction') {
     if (phase === 'groups') return `Start with ${problem.left} ${plural(problem.left)}.`;
     if (phase === 'moving') return `Move ${problem.right} ${plural(problem.right)} away.`;
-    return `${problem.answer} ${plural(problem.answer)} remain.`;
+    return `Now count the ${objectName}s that remain.`;
   }
 
   if (phase === 'result') {
-    return `${problem.left} equal groups of ${problem.right} make ${problem.answer} altogether.`;
+    return 'Now count every object across all the equal groups.';
   }
   if (phase === 'groups') {
     return problem.left === 0
@@ -191,7 +180,9 @@ function AdditionLesson({ problem, phase, theme, reduceMotion }: OperationLesson
           <QuantityGroup
             amount={problem.answer}
             label={isRally ? 'Together in the main bay' : 'Together in one nest'}
+            concealObjectCount
             reduceMotion={reduceMotion}
+            showAmount={false}
             theme={theme}
             featured
           />
@@ -227,9 +218,9 @@ function SubtractionLesson({ problem, phase, theme, reduceMotion }: OperationLes
     <LayoutGroup id={`subtraction-${problem.id}`}>
       <motion.div className="subtraction-layout" data-phase={phase}>
         <div className="subtraction-start">
-          <p>{phase === 'groups' ? (isRally ? `Start: ${problem.left} tyres` : `Start: ${problem.left} eggs`) : (isRally ? `${problem.answer} stay in the bay` : `${problem.answer} stay in the nest`)}</p>
+          <p>{phase === 'groups' ? (isRally ? `Start: ${problem.left} tyres` : `Start: ${problem.left} eggs`) : (isRally ? 'Count the tyres that stay in the bay' : 'Count the eggs that stay in the nest')}</p>
           <div className="subtraction-split">
-            <ObjectGrid amount={problem.answer} layoutIds={remainingIds} reduceMotion={reduceMotion} theme={theme} />
+            <ObjectGrid amount={problem.answer} concealCount layoutIds={remainingIds} reduceMotion={reduceMotion} theme={theme} />
             {phase === 'groups' ? (
               <div className="moving-subtraction-group">
                 <ObjectGrid amount={problem.right} layoutIds={removedIds} reduceMotion={reduceMotion} theme={theme} selected />
@@ -249,7 +240,6 @@ function SubtractionLesson({ problem, phase, theme, reduceMotion }: OperationLes
 }
 
 function MultiplicationLesson({ problem, phase, theme, reduceMotion }: OperationLessonProps) {
-  const isResult = phase === 'result';
   const visibleGroupCount = phase === 'groups' ? Math.min(problem.left, 1) : problem.left;
   const groups = Array.from({ length: visibleGroupCount });
 
@@ -279,11 +269,6 @@ function MultiplicationLesson({ problem, phase, theme, reduceMotion }: Operation
           </motion.div>
         ))}
       </div>
-      {isResult ? (
-        <motion.p className="multiplication-total" initial={reduceMotion ? undefined : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-          {problem.left} groups × {problem.right} = <strong>{problem.answer}</strong>
-        </motion.p>
-      ) : null}
     </motion.div>
   );
 }
@@ -296,9 +281,21 @@ interface QuantityGroupProps {
   layoutIds?: string[];
   moving?: boolean;
   reduceMotion?: boolean;
+  showAmount?: boolean;
+  concealObjectCount?: boolean;
 }
 
-function QuantityGroup({ amount, label, theme, featured = false, layoutIds, moving = false, reduceMotion = false }: QuantityGroupProps) {
+function QuantityGroup({
+  amount,
+  label,
+  theme,
+  featured = false,
+  layoutIds,
+  moving = false,
+  reduceMotion = false,
+  showAmount = true,
+  concealObjectCount = false,
+}: QuantityGroupProps) {
   return (
     <div className="quantity-group" data-featured={featured}>
       <p>{label}</p>
@@ -307,9 +304,9 @@ function QuantityGroup({ amount, label, theme, featured = false, layoutIds, movi
         animate={moving ? { x: '-132%' } : { x: 0 }}
         transition={{ duration: reduceMotion ? 0 : 4.2, ease: LESSON_EASE }}
       >
-        <ObjectGrid amount={amount} layoutIds={layoutIds} reduceMotion={reduceMotion} theme={theme} />
+        <ObjectGrid amount={amount} concealCount={concealObjectCount} layoutIds={layoutIds} reduceMotion={reduceMotion} theme={theme} />
       </motion.div>
-      <strong className="quantity-label">{amount}</strong>
+      {showAmount ? <strong className="quantity-label">{amount}</strong> : null}
     </div>
   );
 }
@@ -321,9 +318,10 @@ interface ObjectGridProps {
   selected?: boolean;
   layoutIds?: string[];
   reduceMotion?: boolean;
+  concealCount?: boolean;
 }
 
-function ObjectGrid({ amount, theme, compact = false, selected = false, layoutIds, reduceMotion = false }: ObjectGridProps) {
+function ObjectGrid({ amount, theme, compact = false, selected = false, layoutIds, reduceMotion = false, concealCount = false }: ObjectGridProps) {
   const columnLimit = compact ? 4 : amount > 20 ? 10 : 5;
   const columns = Math.max(1, Math.min(amount, columnLimit));
   const style = { '--object-columns': columns } as CSSProperties;
@@ -331,7 +329,7 @@ function ObjectGrid({ amount, theme, compact = false, selected = false, layoutId
 
   return (
     <div
-      aria-label={`${amount} ${objectName}`}
+      aria-label={concealCount ? `${objectName} to count` : `${amount} ${objectName}`}
       className="object-grid"
       data-compact={compact}
       data-dense={amount > 20}
