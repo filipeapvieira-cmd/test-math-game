@@ -1,11 +1,11 @@
 # Peter's Number Quest 🦖
 
-A touch-first maths game with two complete visual themes: help Peter cross Dino Valley or take a monster truck through a night-time stadium rally.
+A touch-first maths game with four complete visual themes: explore Dino Valley, race a monster truck, master a Judo journey, or chase football glory under the floodlights.
 
 ## Features
 
 - Animated journey with immediate, encouraging feedback
-- Dino Valley and the more mature Monster Rally theme
+- Four complete worlds: Dino Valley, Monster Rally, Judo Journey, and Football Fever
 - Addition, subtraction, and multiplication
 - Three difficulty levels and 5, 10, or 15-question sessions
 - Large tablet-friendly controls in portrait and landscape

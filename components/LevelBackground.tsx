@@ -21,6 +21,36 @@ export default function LevelBackground({ theme }: LevelBackgroundProps) {
     );
   }
 
+  if (theme === 'judo') {
+    return (
+      <div className="level-background level-background-judo" aria-hidden="true">
+        <div className="dojo-sun" />
+        <div className="dojo-beam dojo-beam-one" />
+        <div className="dojo-beam dojo-beam-two" />
+        <div className="dojo-calligraphy">柔</div>
+        <div className="dojo-window dojo-window-one"><span /><span /><span /><span /></div>
+        <div className="dojo-window dojo-window-two"><span /><span /><span /><span /></div>
+        <div className="dojo-wall-rail" />
+        <div className="dojo-tatami" />
+      </div>
+    );
+  }
+
+  if (theme === 'football') {
+    return (
+      <div className="level-background level-background-football" aria-hidden="true">
+        <div className="football-floodlight football-floodlight-left"><span /><span /><span /><span /><span /><span /></div>
+        <div className="football-floodlight football-floodlight-right"><span /><span /><span /><span /><span /><span /></div>
+        <div className="football-crowd">
+          {Array.from({ length: 20 }).map((_, index) => <span key={index} />)}
+        </div>
+        <div className="football-pitch" />
+        <div className="football-touchline" />
+        <div className="football-center-circle" />
+      </div>
+    );
+  }
+
   return (
     <div className="level-background" aria-hidden="true">
       <div className="sky-glow" />

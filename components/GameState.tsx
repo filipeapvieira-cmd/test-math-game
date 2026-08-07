@@ -113,9 +113,15 @@ function playFeedbackSound(correct: boolean, enabled: boolean, theme: GameSettin
   const gain = context.createGain();
   const now = context.currentTime;
 
-  oscillator.type = theme === 'rally' ? 'triangle' : correct ? 'sine' : 'triangle';
-  const startFrequency = theme === 'rally' ? (correct ? 145 : 125) : (correct ? 520 : 220);
-  const endFrequency = theme === 'rally' ? (correct ? 280 : 92) : (correct ? 780 : 180);
+  const soundProfiles: Record<GameSettings['theme'], { type: OscillatorType; correct: [number, number]; incorrect: [number, number] }> = {
+    dino: { type: correct ? 'sine' : 'triangle', correct: [520, 780], incorrect: [220, 180] },
+    rally: { type: 'triangle', correct: [145, 280], incorrect: [125, 92] },
+    judo: { type: 'sine', correct: [392, 659], incorrect: [247, 196] },
+    football: { type: 'square', correct: [330, 660], incorrect: [196, 147] },
+  };
+  const sound = soundProfiles[theme];
+  const [startFrequency, endFrequency] = correct ? sound.correct : sound.incorrect;
+  oscillator.type = sound.type;
   oscillator.frequency.setValueAtTime(startFrequency, now);
   oscillator.frequency.exponentialRampToValueAtTime(endFrequency, now + 0.18);
   gain.gain.setValueAtTime(0.0001, now);
@@ -128,7 +134,11 @@ function playFeedbackSound(correct: boolean, enabled: boolean, theme: GameSettin
   oscillator.addEventListener('ended', () => void context.close(), { once: true });
 }
 
-export default function GameState() {
+interface GameStateProps {
+  onExit?: () => void;
+}
+
+export default function GameState({ onExit }: GameStateProps) {
   const [state, dispatch] = useReducer(gameReducer, initialState);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [explanationProblem, setExplanationProblem] = useState<Problem | null>(null);
@@ -216,6 +226,7 @@ export default function GameState() {
           bestStreak={state.bestStreak}
           onPlayAgain={handlePlayAgain}
           onOpenSettings={() => setSettingsOpen(true)}
+          onExit={onExit}
         />
         {settingsOpen ? (
           <GameSettingsPanel settings={state.settings} onApply={handleApplySettings} onClose={closeSettings} />
@@ -227,13 +238,38 @@ export default function GameState() {
   const feedback = state.status === 'correct' || state.status === 'incorrect'
     ? state.status
     : 'answering';
-  const isRally = state.settings.theme === 'rally';
+  const themeContent = {
+    dino: {
+      badge: 'P', kicker: "Peter's", title: 'Number Quest',
+      correct: 'Great thinking! Peter moves ahead!',
+      streak: (count: number) => `Amazing! ${count} in a row!`,
+      incorrect: 'Almost! Here comes a clue.',
+    },
+    rally: {
+      badge: '7', kicker: 'Monster', title: 'Number Rally',
+      correct: 'Clean jump! The truck charges ahead.',
+      streak: (count: number) => `${count} clean checkpoints in a row!`,
+      incorrect: 'Check your line and try the clue.',
+    },
+    judo: {
+      badge: '柔', kicker: 'Judo', title: 'Number Journey',
+      correct: 'Ippon! One step closer to the golden belt.',
+      streak: (count: number) => `${count} brilliant throws in a row!`,
+      incorrect: 'Reset your stance. The sensei has a clue.',
+    },
+    football: {
+      badge: '10', kicker: 'Football', title: 'Number Fever',
+      correct: 'Goal! You dribble closer to the cup.',
+      streak: (count: number) => `${count} goals in a row — hat-trick form!`,
+      incorrect: 'So close! The coach has a game plan.',
+    },
+  }[state.settings.theme];
   const feedbackMessage = state.status === 'correct'
     ? state.streak >= 3
-      ? isRally ? `${state.streak} clean checkpoints in a row!` : `Amazing! ${state.streak} in a row!`
-      : isRally ? 'Clean jump! The truck charges ahead.' : 'Great thinking! Peter moves ahead!'
+      ? themeContent.streak(state.streak)
+      : themeContent.correct
     : state.status === 'incorrect'
-      ? isRally ? 'Check your line and try the clue.' : 'Almost! Here comes a clue.'
+      ? themeContent.incorrect
       : '';
 
   return (
@@ -243,10 +279,10 @@ export default function GameState() {
       <div className="game-frame">
         <header className="game-header">
           <div className="game-brand">
-            <span className="brand-badge" aria-hidden="true">{isRally ? '7' : 'P'}</span>
+            <span className="brand-badge" aria-hidden="true">{themeContent.badge}</span>
             <div>
-              <p>{isRally ? 'Monster' : "Peter's"}</p>
-              <h1>{isRally ? 'Number Rally' : 'Number Quest'}</h1>
+              <p>{themeContent.kicker}</p>
+              <h1>{themeContent.title}</h1>
             </div>
           </div>
 
@@ -258,6 +294,11 @@ export default function GameState() {
           />
 
           <div className="game-controls">
+            {onExit ? (
+              <button aria-label="Choose another game" className="icon-button" type="button" onClick={onExit}>
+                <span aria-hidden="true">⌂</span>
+              </button>
+            ) : null}
             <button
               aria-label={state.settings.soundEnabled ? 'Turn sound off' : 'Turn sound on'}
               aria-pressed={state.settings.soundEnabled}

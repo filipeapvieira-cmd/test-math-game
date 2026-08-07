@@ -1,6 +1,10 @@
 'use client';
 
 import GoalEggSVG from './GoalEggSVG';
+import FootballCharacter from './FootballCharacter';
+import FootballCupSVG from './FootballCupSVG';
+import JudoBeltSVG from './JudoBeltSVG';
+import JudoCharacter from './JudoCharacter';
 import MonsterTruckCharacter from './MonsterTruckCharacter';
 import PeterCharacter from './PeterCharacter';
 import RallyTrophySVG from './RallyTrophySVG';
@@ -16,13 +20,19 @@ interface ProgressBarProps {
 export default function ProgressBar({ current, total, feedback, theme }: ProgressBarProps) {
   const progress = total === 0 ? 0 : current / total;
   const isRally = theme === 'rally';
+  const isJudo = theme === 'judo';
+  const isFootball = theme === 'football';
+  const journeyLabel = {
+    dino: `Journey progress: ${current} of ${total} questions complete`,
+    rally: `Rally progress: ${current} of ${total} checkpoints complete`,
+    judo: `Judo journey: ${current} of ${total} techniques complete`,
+    football: `Football match: ${current} of ${total} goals complete`,
+  }[theme];
 
   return (
     <section
-      aria-label={isRally
-        ? `Rally progress: ${current} of ${total} checkpoints complete`
-        : `Journey progress: ${current} of ${total} questions complete`}
-      className={`journey ${isRally ? 'journey-rally' : ''}`}
+      aria-label={journeyLabel}
+      className={`journey journey-${theme}`}
     >
       {isRally ? (
         <>
@@ -31,6 +41,22 @@ export default function ProgressBar({ current, total, feedback, theme }: Progres
           <div className="rally-stage-stands" />
           <div className="rally-stage-ramp rally-stage-ramp-one" />
           <div className="rally-stage-ramp rally-stage-ramp-two" />
+        </>
+      ) : isJudo ? (
+        <>
+          <div className="judo-stage-sun" />
+          <div className="judo-stage-panel judo-stage-panel-one" />
+          <div className="judo-stage-panel judo-stage-panel-two" />
+          <div className="judo-stage-banner">精力善用</div>
+          <div className="judo-stage-tatami" />
+        </>
+      ) : isFootball ? (
+        <>
+          <div className="football-stage-light football-stage-light-one" />
+          <div className="football-stage-light football-stage-light-two" />
+          <div className="football-stage-crowd" />
+          <div className="football-stage-pitch" />
+          <div className="football-stage-goal"><span /><span /><span /></div>
         </>
       ) : (
         <>
@@ -53,13 +79,17 @@ export default function ProgressBar({ current, total, feedback, theme }: Progres
             key={index}
             style={{ left: `${10 + stepProgress * 72}%` }}
           >
-            <i>{completed ? (isRally ? '✓' : '★') : ''}</i>
+            <i>{completed ? (isRally ? '✓' : isJudo ? '礼' : isFootball ? '⚽' : '★') : ''}</i>
           </span>
         );
       })}
 
       {isRally ? (
         <MonsterTruckCharacter progress={progress} feedback={feedback} />
+      ) : isJudo ? (
+        <JudoCharacter progress={progress} feedback={feedback} />
+      ) : isFootball ? (
+        <FootballCharacter progress={progress} feedback={feedback} />
       ) : (
         <PeterCharacter progress={progress} feedback={feedback} />
       )}
@@ -68,6 +98,16 @@ export default function ProgressBar({ current, total, feedback, theme }: Progres
         <div className="goal-trophy">
           <span className="checkered-flag" aria-hidden="true">▦</span>
           <RallyTrophySVG />
+        </div>
+      ) : isJudo ? (
+        <div className="goal-judo-belt">
+          <span className="goal-kanji" aria-hidden="true">道</span>
+          <JudoBeltSVG />
+        </div>
+      ) : isFootball ? (
+        <div className="goal-football-cup">
+          <span className="goal-cup-glow" aria-hidden="true">✦</span>
+          <FootballCupSVG />
         </div>
       ) : (
         <div className="goal-egg">

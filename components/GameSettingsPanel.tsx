@@ -13,6 +13,8 @@ import {
 } from './gameEngine';
 import MonsterTruckSVG from './MonsterTruckSVG';
 import PeterTRexSVG from './PeterTRexSVG';
+import JudoKidSVG from './JudoKidSVG';
+import FootballPlayerSVG from './FootballPlayerSVG';
 
 interface GameSettingsPanelProps {
   settings: GameSettings;
@@ -23,7 +25,14 @@ interface GameSettingsPanelProps {
 const operations: Operation[] = ['addition', 'subtraction', 'multiplication'];
 const difficulties: Difficulty[] = [1, 2, 3];
 const sessionLengths: SessionLength[] = [5, 10, 15];
-const themes: GameTheme[] = ['dino', 'rally'];
+const themes: GameTheme[] = ['dino', 'rally', 'judo', 'football'];
+
+const themeArtwork: Record<GameTheme, React.ReactNode> = {
+  dino: <PeterTRexSVG />,
+  rally: <MonsterTruckSVG />,
+  judo: <JudoKidSVG />,
+  football: <FootballPlayerSVG />,
+};
 
 export default function GameSettingsPanel({ settings, onApply, onClose }: GameSettingsPanelProps) {
   const [draft, setDraft] = useState(settings);
@@ -76,7 +85,7 @@ export default function GameSettingsPanel({ settings, onApply, onClose }: GameSe
                 onClick={() => setDraft((current) => ({ ...current, theme }))}
               >
                 <span className="theme-preview-art" aria-hidden="true">
-                  {theme === 'dino' ? <PeterTRexSVG /> : <MonsterTruckSVG />}
+                  {themeArtwork[theme]}
                 </span>
                 <span className="theme-preview-copy">
                   <strong>{THEME_LABELS[theme].name}</strong>

@@ -8,12 +8,18 @@ interface LevelProgressProps {
 }
 
 export default function LevelProgress({ current, total, streak, theme }: LevelProgressProps) {
-  const isRally = theme === 'rally';
+  const themeIcons: Record<GameTheme, { score: string; streak: string }> = {
+    dino: { score: '★', streak: '🔥' },
+    rally: { score: '◆', streak: '⚡' },
+    judo: { score: '●', streak: '🥋' },
+    football: { score: '⚽', streak: '🔥' },
+  };
+  const icons = themeIcons[theme];
 
   return (
     <div className="progress-summary" aria-label={`${current} out of ${total} complete. Current streak: ${streak}`}>
       <div className="progress-score">
-        <span aria-hidden="true">{isRally ? '◆' : '★'}</span>
+        <span aria-hidden="true">{icons.score}</span>
         <strong>{current}</strong>
         <span className="progress-total">/ {total}</span>
       </div>
@@ -23,7 +29,7 @@ export default function LevelProgress({ current, total, streak, theme }: LevelPr
         ))}
       </div>
       <div className="streak-pill" data-active={streak > 1}>
-        <span aria-hidden="true">{isRally ? '⚡' : '🔥'}</span>
+        <span aria-hidden="true">{icons.streak}</span>
         {streak === 0 ? 'Ready!' : `${streak} streak`}
       </div>
     </div>

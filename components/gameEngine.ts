@@ -1,7 +1,7 @@
 export type Operation = 'addition' | 'subtraction' | 'multiplication';
 export type Difficulty = 1 | 2 | 3;
 export type SessionLength = 5 | 10 | 15;
-export type GameTheme = 'dino' | 'rally';
+export type GameTheme = 'dino' | 'rally' | 'judo' | 'football';
 
 export interface GameSettings {
   theme: GameTheme;
@@ -38,6 +38,14 @@ export const THEME_LABELS: Record<GameTheme, { name: string; description: string
   rally: {
     name: 'Monster Rally',
     description: 'A tougher night race through the stadium.',
+  },
+  judo: {
+    name: 'Judo Journey',
+    description: 'Train with courage and earn the golden belt.',
+  },
+  football: {
+    name: 'Football Fever',
+    description: 'Dribble through a roaring stadium to the cup.',
   },
 };
 
@@ -210,7 +218,7 @@ export function parseGameSettings(value: unknown): GameSettings | null {
     [1, 2, 3].includes(candidate.difficulty ?? 0) &&
     [5, 10, 15].includes(candidate.questionsToWin ?? 0) &&
     typeof candidate.soundEnabled === 'boolean' &&
-    (candidate.theme === undefined || ['dino', 'rally'].includes(candidate.theme))
+    (candidate.theme === undefined || ['dino', 'rally', 'judo', 'football'].includes(candidate.theme))
   );
 
   if (!isValid) return null;

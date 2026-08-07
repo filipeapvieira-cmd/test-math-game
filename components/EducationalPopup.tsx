@@ -17,10 +17,50 @@ const RESULT_REVEAL_MS = 7000;
 const AUTO_CLOSE_MS = 10000;
 const LESSON_EASE = [0.45, 0, 0.55, 1] as const;
 
+const LESSON_THEME: Record<GameTheme, {
+  eyebrow: string;
+  title: string;
+  object: string;
+  objects: string;
+  primaryGroup: string;
+  secondaryGroup: string;
+  combinedGroup: string;
+  movingGroup: string;
+  startLabel: string;
+  remainingLabel: string;
+  awayLabel: string;
+  buttonLabel: string;
+}> = {
+  dino: {
+    eyebrow: 'A quick counting clue', title: 'Let’s build the answer', object: 'egg', objects: 'eggs',
+    primaryGroup: 'First nest', secondaryGroup: 'Second nest', combinedGroup: 'Together in one nest',
+    movingGroup: 'Moving to the first nest', startLabel: 'Start', remainingLabel: 'Count the eggs that stay in the nest',
+    awayLabel: 'Moved away', buttonLabel: 'Got it — try again',
+  },
+  rally: {
+    eyebrow: 'Replay the calculation', title: 'Pit crew breakdown', object: 'tyre', objects: 'tyres',
+    primaryGroup: 'Main bay', secondaryGroup: 'Side bay', combinedGroup: 'Together in the main bay',
+    movingGroup: 'Rolling to the main bay', startLabel: 'Start', remainingLabel: 'Count the tyres that stay in the bay',
+    awayLabel: 'Rolled away', buttonLabel: 'Back on track',
+  },
+  judo: {
+    eyebrow: 'Sensei’s counting kata', title: 'Break down the technique', object: 'belt', objects: 'belts',
+    primaryGroup: 'Red tatami', secondaryGroup: 'Blue tatami', combinedGroup: 'Together on the main tatami',
+    movingGroup: 'Stepping onto the main tatami', startLabel: 'Bow in', remainingLabel: 'Count the belts that stay on the tatami',
+    awayLabel: 'Stepped off', buttonLabel: 'Ready — hajime!',
+  },
+  football: {
+    eyebrow: 'Coach’s tactical clue', title: 'Replay the number move', object: 'ball', objects: 'balls',
+    primaryGroup: 'Home half', secondaryGroup: 'Away half', combinedGroup: 'Together in the centre circle',
+    movingGroup: 'Dribbling to the centre', startLabel: 'Kick-off', remainingLabel: 'Count the balls left on the pitch',
+    awayLabel: 'Off the pitch', buttonLabel: 'Got it — play on!',
+  },
+};
+
 export default function EducationalPopup({ problem, theme, onClose }: EducationalPopupProps) {
   const reduceMotion = useReducedMotion();
   const [phase, setPhase] = useState<LessonPhase>('groups');
-  const isRally = theme === 'rally';
+  const lessonTheme = LESSON_THEME[theme];
   const visiblePhase: LessonPhase = reduceMotion ? 'result' : phase;
 
   useEffect(() => {
@@ -41,9 +81,7 @@ export default function EducationalPopup({ problem, theme, onClose }: Educationa
     };
   }, [onClose, reduceMotion]);
 
-  const title = isRally ? 'Pit crew breakdown' : 'Let’s build the answer';
-  const objectName = isRally ? 'tyre' : 'egg';
-  const description = getLessonDescription(problem, visiblePhase, objectName);
+  const description = getLessonDescription(problem, visiblePhase, lessonTheme.object);
   const lessonSteps = getLessonSteps(problem);
   const currentStep = visiblePhase === 'groups' ? 0 : visiblePhase === 'moving' ? 1 : 2;
 
@@ -60,8 +98,8 @@ export default function EducationalPopup({ problem, theme, onClose }: Educationa
 
         <header className="education-header">
           <div>
-            <p className="eyebrow">{isRally ? 'Replay the calculation' : 'A quick counting clue'}</p>
-            <h2 id="education-title">{title}</h2>
+            <p className="eyebrow">{lessonTheme.eyebrow}</p>
+            <h2 id="education-title">{lessonTheme.title}</h2>
           </div>
           <button
             aria-label="Close explanation and try again"
@@ -104,7 +142,7 @@ export default function EducationalPopup({ problem, theme, onClose }: Educationa
         </div>
 
         <button className="education-understood" type="button" onClick={onClose}>
-          {isRally ? 'Back on track' : 'Got it — try again'}
+          {lessonTheme.buttonLabel}
         </button>
         <p className="education-auto-close">This clue closes automatically after 10 seconds.</p>
       </section>
@@ -164,7 +202,7 @@ function OperationLesson({ problem, phase, theme, reduceMotion }: OperationLesso
 }
 
 function AdditionLesson({ problem, phase, theme, reduceMotion }: OperationLessonProps) {
-  const isRally = theme === 'rally';
+  const lessonTheme = LESSON_THEME[theme];
 
   return (
     <AnimatePresence mode="sync">
@@ -179,7 +217,7 @@ function AdditionLesson({ problem, phase, theme, reduceMotion }: OperationLesson
         >
           <QuantityGroup
             amount={problem.answer}
-            label={isRally ? 'Together in the main bay' : 'Together in one nest'}
+            label={lessonTheme.combinedGroup}
             concealObjectCount
             reduceMotion={reduceMotion}
             showAmount={false}
@@ -194,11 +232,11 @@ function AdditionLesson({ problem, phase, theme, reduceMotion }: OperationLesson
           exit={{ opacity: 0.58, scale: 0.98 }}
           transition={{ duration: reduceMotion ? 0 : 0.3, ease: LESSON_EASE }}
         >
-          <QuantityGroup amount={problem.left} label={isRally ? 'Main bay' : 'First nest'} reduceMotion={reduceMotion} theme={theme} />
+          <QuantityGroup amount={problem.left} label={lessonTheme.primaryGroup} reduceMotion={reduceMotion} theme={theme} />
           <span className="lesson-operator" aria-hidden="true">+</span>
           <QuantityGroup
             amount={problem.right}
-            label={phase === 'moving' ? (isRally ? 'Rolling to the main bay' : 'Moving to the first nest') : (isRally ? 'Side bay' : 'Second nest')}
+            label={phase === 'moving' ? lessonTheme.movingGroup : lessonTheme.secondaryGroup}
             moving={phase === 'moving'}
             reduceMotion={reduceMotion}
             theme={theme}
@@ -210,7 +248,7 @@ function AdditionLesson({ problem, phase, theme, reduceMotion }: OperationLesson
 }
 
 function SubtractionLesson({ problem, phase, theme, reduceMotion }: OperationLessonProps) {
-  const isRally = theme === 'rally';
+  const lessonTheme = LESSON_THEME[theme];
   const remainingIds = createObjectIds(problem, 'remaining', problem.answer);
   const removedIds = createObjectIds(problem, 'removed', problem.right);
 
@@ -218,7 +256,7 @@ function SubtractionLesson({ problem, phase, theme, reduceMotion }: OperationLes
     <LayoutGroup id={`subtraction-${problem.id}`}>
       <motion.div className="subtraction-layout" data-phase={phase}>
         <div className="subtraction-start">
-          <p>{phase === 'groups' ? (isRally ? `Start: ${problem.left} tyres` : `Start: ${problem.left} eggs`) : (isRally ? 'Count the tyres that stay in the bay' : 'Count the eggs that stay in the nest')}</p>
+          <p>{phase === 'groups' ? `${lessonTheme.startLabel}: ${problem.left} ${lessonTheme.objects}` : lessonTheme.remainingLabel}</p>
           <div className="subtraction-split">
             <ObjectGrid amount={problem.answer} concealCount layoutIds={remainingIds} reduceMotion={reduceMotion} theme={theme} />
             {phase === 'groups' ? (
@@ -232,7 +270,7 @@ function SubtractionLesson({ problem, phase, theme, reduceMotion }: OperationLes
           {phase !== 'groups' ? (
             <ObjectGrid amount={problem.right} layoutIds={removedIds} reduceMotion={reduceMotion} theme={theme} selected />
           ) : <span aria-hidden="true">→</span>}
-          <p>{isRally ? 'Rolled away' : 'Moved away'}</p>
+          <p>{lessonTheme.awayLabel}</p>
         </div>
       </motion.div>
     </LayoutGroup>
@@ -325,11 +363,12 @@ function ObjectGrid({ amount, theme, compact = false, selected = false, layoutId
   const columnLimit = compact ? 4 : amount > 20 ? 10 : 5;
   const columns = Math.max(1, Math.min(amount, columnLimit));
   const style = { '--object-columns': columns } as CSSProperties;
-  const objectName = theme === 'rally' ? 'tyres' : 'eggs';
+  const lessonTheme = LESSON_THEME[theme];
+  const objectName = amount === 1 ? lessonTheme.object : lessonTheme.objects;
 
   return (
     <div
-      aria-label={concealCount ? `${objectName} to count` : `${amount} ${objectName}`}
+      aria-label={concealCount ? `${lessonTheme.objects} to count` : `${amount} ${objectName}`}
       className="object-grid"
       data-compact={compact}
       data-dense={amount > 20}

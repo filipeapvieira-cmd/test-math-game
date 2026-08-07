@@ -1,5 +1,5 @@
-import GameState from '@/components/GameState';
+import AdventureHub from '@/components/AdventureHub';
 
 export default function Home() {
-  return <GameState />;
+  return <AdventureHub />;
 }
