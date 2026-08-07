@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useReducer, useState } from 'react';
 import AnswerButtons from './AnswerButtons';
+import EducationalPopup from './EducationalPopup';
 import GameSettingsPanel from './GameSettingsPanel';
 import LevelBackground from './LevelBackground';
 import LevelProgress from './LevelProgress';
@@ -130,6 +131,7 @@ function playFeedbackSound(correct: boolean, enabled: boolean, theme: GameSettin
 export default function GameState() {
   const [state, dispatch] = useReducer(gameReducer, initialState);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [explanationProblem, setExplanationProblem] = useState<Problem | null>(null);
 
   const startGame = useCallback((settings: GameSettings) => {
     dispatch({ type: 'START', settings, problem: createProblem(settings) });
@@ -154,11 +156,6 @@ export default function GameState() {
   }, [state.settings, state.status]);
 
   useEffect(() => {
-    if (state.status === 'incorrect') {
-      const retryTimer = window.setTimeout(() => dispatch({ type: 'RETRY' }), 950);
-      return () => window.clearTimeout(retryTimer);
-    }
-
     if (state.status === 'correct') {
       const nextTimer = window.setTimeout(() => {
         if (state.score >= state.settings.questionsToWin) {
@@ -181,15 +178,24 @@ export default function GameState() {
     const correct = answer === state.problem.answer;
     playFeedbackSound(correct, state.settings.soundEnabled, state.settings.theme);
     dispatch({ type: 'ANSWER', answer, correct });
+    if (!correct) setExplanationProblem(state.problem);
   };
 
   const handleApplySettings = (settings: GameSettings) => {
+    setExplanationProblem(null);
     startGame(settings);
     setSettingsOpen(false);
   };
 
-  const handlePlayAgain = () => startGame(state.settings);
+  const handlePlayAgain = () => {
+    setExplanationProblem(null);
+    startGame(state.settings);
+  };
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
+  const closeExplanation = useCallback(() => {
+    setExplanationProblem(null);
+    dispatch({ type: 'RETRY' });
+  }, []);
 
   if (!state.problem) {
     return (
@@ -308,6 +314,14 @@ export default function GameState() {
 
       {settingsOpen ? (
         <GameSettingsPanel settings={state.settings} onApply={handleApplySettings} onClose={closeSettings} />
+      ) : null}
+      {explanationProblem ? (
+        <EducationalPopup
+          key={explanationProblem.id}
+          problem={explanationProblem}
+          theme={state.settings.theme}
+          onClose={closeExplanation}
+        />
       ) : null}
     </main>
   );
